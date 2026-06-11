@@ -11,8 +11,8 @@ const Footer = () => {
           {/* Brand */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
-                <span className="text-xl">🐇</span>
+              <div className="w-9 h-9 rounded-xl overflow-hidden bg-primary-100 flex items-center justify-center">
+                <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="text-primary-50 font-bold text-lg leading-none">RV Pets Zone</div>
