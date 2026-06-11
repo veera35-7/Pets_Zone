@@ -152,12 +152,12 @@ const sendOTP = async (req, res) => {
       expires: Date.now() + 5 * 60 * 1000
     });
 
-    console.log(`[OTP] Sent to mobile ${mobile}: ${code}`);
+    console.log(`[OTP] Welcome to RV Pets Zone! Use OTP: ${code} to login.`);
 
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      ...(process.env.NODE_ENV === 'development' && { otp: code })
+      otp: code // Always return OTP code in response for testing/demo since SMS gateway is simulated
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

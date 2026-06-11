@@ -72,7 +72,7 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-2.5 text-sm text-primary-400">
                 <Mail size={15} className="text-primary-500 mt-0.5 shrink-0" />
-                <a href="mailto:contact@rvpetszone.com" className="hover:text-white transition-colors">contact@rvpetszone.com</a>
+                <a href="mailto:newupdate106@gmail.com" className="hover:text-white transition-colors">newupdate106@gmail.com</a>
               </li>
               <li className="flex items-start gap-2.5 text-sm text-primary-400">
                 <Instagram size={15} className="text-primary-500 mt-0.5 shrink-0" />

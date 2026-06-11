@@ -55,7 +55,7 @@ const HeroSection = () => (
         {/* Stats */}
         <div className="flex flex-wrap items-center justify-center gap-8 mt-16">
           {[
-            { label: 'Clients', value: '1,200+' },
+            { label: 'Customers', value: '1,000+' },
             { label: 'Cities', value: '80+' },
             { label: 'Cows Listed', value: '450+' },
             { label: 'User Logins', value: '3,000+' },
@@ -229,7 +229,7 @@ const ContactSection = () => (
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-primary-500">
             <a href="tel:+919715487090" className="hover:text-primary-200 transition-colors">📞 +91 9715487090</a>
-            <a href="mailto:contact@rvpetszone.com" className="hover:text-primary-200 transition-colors">✉️ contact@rvpetszone.com</a>
+            <a href="mailto:newupdate106@gmail.com" className="hover:text-primary-200 transition-colors">✉️ newupdate106@gmail.com</a>
             <a href="https://instagram.com/rv_pets_zone" target="_blank" rel="noopener noreferrer" className="hover:text-primary-200 transition-colors">📸 @rv_pets_zone</a>
           </div>
         </motion.div>
