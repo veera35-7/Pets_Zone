@@ -129,6 +129,29 @@ const changePassword = async (req, res) => {
 // In-memory OTP cache: mobile -> { otp, expires }
 const otpCache = new Map();
 
+// Helper to send actual SMS using Fast2SMS gateway
+const sendActualSMS = async (mobile, code) => {
+  if (!process.env.FAST2SMS_API_KEY) {
+    console.log(`⚠️ FAST2SMS_API_KEY not configured. SMS not sent to ${mobile}.`);
+    return false;
+  }
+  try {
+    const url = `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${code}&numbers=${mobile}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.return === true) {
+      console.log(`✅ SMS sent successfully to ${mobile} via Fast2SMS`);
+      return true;
+    } else {
+      console.log(`❌ Fast2SMS failed to send: ${data.message || 'Unknown error'}`);
+      return false;
+    }
+  } catch (err) {
+    console.error('❌ Error sending SMS via Fast2SMS:', err.message);
+    return false;
+  }
+};
+
 // @desc  Send OTP to mobile
 // @route POST /api/auth/otp/send
 // @access Public
@@ -154,10 +177,12 @@ const sendOTP = async (req, res) => {
 
     console.log(`[OTP] Welcome to RV Pets Zone! Use OTP: ${code} to login.`);
 
+    // Send actual SMS if Fast2SMS API key is set
+    await sendActualSMS(mobile, code);
+
     res.json({
       success: true,
-      message: 'OTP sent successfully',
-      otp: code // Always return OTP code in response for testing/demo since SMS gateway is simulated
+      message: 'OTP sent successfully'
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
