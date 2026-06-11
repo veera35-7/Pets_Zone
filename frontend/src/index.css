@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==================== BASE STYLES ==================== */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-primary-950 text-primary-100 font-sans;
+    min-height: 100vh;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-primary-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-400;
+  }
+
+  ::selection {
+    @apply bg-accent-gold text-primary-950;
+  }
+}
+
+/* ==================== COMPONENT STYLES ==================== */
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-100 text-primary-950 font-semibold rounded-full transition-all duration-300 hover:bg-white hover:shadow-luxury hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-300;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 border border-primary-400 text-primary-200 font-semibold rounded-full transition-all duration-300 hover:border-primary-100 hover:text-white hover:bg-primary-800 active:scale-95 focus:outline-none;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent-gold text-primary-950 font-semibold rounded-full transition-all duration-300 hover:bg-accent-gold-light hover:shadow-glow hover:scale-105 active:scale-95;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg transition-all duration-200 hover:bg-red-500 active:scale-95;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white font-medium rounded-lg transition-all duration-200 hover:bg-emerald-500 active:scale-95;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-primary-900 border border-primary-800 rounded-2xl overflow-hidden transition-all duration-300 hover:border-primary-600 hover:shadow-card-hover;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-4 py-3 bg-primary-900 border border-primary-700 rounded-xl text-primary-100 placeholder-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all duration-200;
+  }
+
+  .input-label {
+    @apply block text-sm font-medium text-primary-300 mb-1.5;
+  }
+
+  /* Badges */
+  .badge-pending {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-semibold;
+  }
+
+  .badge-approved {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-semibold;
+  }
+
+  .badge-rejected {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-semibold;
+  }
+
+  .badge-featured {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 bg-accent-gold/20 text-accent-gold border border-accent-gold/30 rounded-full text-xs font-semibold;
+  }
+
+  /* Section heading */
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-primary-50 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-primary-400 text-lg mt-3;
+  }
+
+  /* Shimmer loading */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      theme('colors.primary.900') 25%,
+      theme('colors.primary.800') 50%,
+      theme('colors.primary.900') 75%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* ==================== UTILITIES ==================== */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-50 via-primary-200 to-primary-50 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-accent-gold-light via-accent-gold to-accent-gold-dark bg-clip-text text-transparent;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #c9a84c, #ffffff33) 1;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Hero gradient overlay */
+  .hero-gradient {
+    background: radial-gradient(ellipse at 50% 50%, rgba(201, 168, 76, 0.08) 0%, transparent 70%),
+                linear-gradient(to bottom, rgba(10,10,10,0) 0%, rgba(10,10,10,0.8) 100%);
+  }
+}
+
+/* ==================== ANIMATIONS ==================== */
+.swiper-pagination-bullet {
+  background: theme('colors.primary.400') !important;
+}
+
+.swiper-pagination-bullet-active {
+  background: theme('colors.primary.50') !important;
+}
+
+/* Floating WhatsApp Button */
+.whatsapp-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 999;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  transition: all 0.3s ease;
+  animation: pulse-whatsapp 2.5s infinite;
+}
+
+.whatsapp-fab:hover {
+  transform: scale(1.15);
+  box-shadow: 0 8px 30px rgba(37, 211, 102, 0.6);
+}
+
+@keyframes pulse-whatsapp {
+  0%, 100% { box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4); }
+  50% { box-shadow: 0 4px 40px rgba(37, 211, 102, 0.7); }
+}
