@@ -89,7 +89,7 @@ const LoginPage = () => {
         <div className="absolute inset-0 bg-gradient-radial from-accent-gold/5 via-transparent to-transparent" />
         <Link to="/" className="flex items-center gap-2 relative z-10">
           <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
-            <span className="text-primary-950 font-black text-sm">RV</span>
+            <span className="text-xl">🐇</span>
           </div>
           <span className="text-primary-50 font-bold text-lg">RV Pets Zone</span>
         </Link>
@@ -119,7 +119,7 @@ const LoginPage = () => {
           <div className="lg:hidden mb-8">
             <Link to="/" className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center">
-                <span className="text-primary-950 font-black text-sm">RV</span>
+                <span className="text-xl">🐇</span>
               </div>
               <span className="text-primary-50 font-bold text-lg">RV Pets Zone</span>
             </Link>
