@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Users, ClipboardList, Clock, CheckCircle, XCircle, MessageSquare, Shield, Loader2, Sparkles, Plus } from 'lucide-react'
+import { Users, ClipboardList, Clock, CheckCircle, XCircle, MessageSquare, Shield, Loader2, Sparkles, Eye, TrendingUp } from 'lucide-react'
 import api from '../../lib/axios'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts'
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null)
+  const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -13,6 +15,7 @@ const AdminDashboard = () => {
     try {
       const res = await api.get('/admin/stats')
       setStats(res.data.stats)
+      setAnalytics(res.data.analytics)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch admin stats.')
     } finally {
@@ -33,13 +36,7 @@ const AdminDashboard = () => {
     )
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-950/20 border border-red-900/50 p-4 rounded-2xl text-red-400 text-sm">
-        {error}
-      </div>
-    )
-  }
+  const COLORS = ['#D4AF37', '#AA7C11', '#10B981', '#3B82F6', '#EC4899', '#8B5CF6', '#F59E0B', '#EF4444']
 
   const cards = [
     {
@@ -51,12 +48,31 @@ const AdminDashboard = () => {
       link: '/admin/users'
     },
     {
-      title: 'Total Listings',
-      value: stats.totalPets || 0,
-      icon: ClipboardList,
+      title: 'Active Users Online',
+      value: stats.activeUsers || 0,
+      icon: Users,
+      color: 'text-accent-gold font-extrabold',
+      bg: 'bg-accent-gold/5',
+      border: 'border-accent-gold/20',
+      link: '/admin/users',
+      isLive: true
+    },
+    {
+      title: 'Total Views',
+      value: stats.totalViews || 0,
+      icon: Eye,
       color: 'text-primary-100',
       bg: 'bg-primary-900/40',
       link: '/admin/pets'
+    },
+    {
+      title: 'Conversion Rate',
+      value: `${stats.conversionRate || 0}%`,
+      icon: TrendingUp,
+      color: 'text-emerald-400 font-extrabold',
+      bg: 'bg-emerald-500/5',
+      border: 'border-emerald-500/20',
+      link: '/admin/enquiries'
     },
     {
       title: 'Pending Review',
@@ -75,23 +91,6 @@ const AdminDashboard = () => {
       bg: 'bg-emerald-500/5',
       border: 'border-emerald-500/20',
       link: '/admin/pets?status=approved'
-    },
-    {
-      title: 'Rejected Listings',
-      value: stats.rejectedPets || 0,
-      icon: XCircle,
-      color: 'text-red-400',
-      bg: 'bg-red-500/5',
-      border: 'border-red-500/20',
-      link: '/admin/pets?status=rejected'
-    },
-    {
-      title: 'Total Enquiries',
-      value: stats.totalEnquiries || 0,
-      icon: MessageSquare,
-      color: 'text-primary-100',
-      bg: 'bg-primary-900/40',
-      link: '/admin/enquiries'
     }
   ]
 
@@ -123,12 +122,18 @@ const AdminDashboard = () => {
                 to={card.link}
                 className={`block p-6 rounded-2xl backdrop-blur-md border ${
                   card.border || 'border-primary-800/80'
-                } ${card.bg} hover:border-primary-600 transition-colors shadow-luxury group`}
+                } ${card.bg} hover:border-primary-650 transition-colors shadow-luxury group`}
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-semibold text-primary-400 uppercase tracking-wider block">
+                    <span className="text-xs font-semibold text-primary-400 uppercase tracking-wider flex items-center gap-1.5">
                       {card.title}
+                      {card.isLive && (
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
                     </span>
                     <span className={`text-4xl font-extrabold mt-4 block ${card.color}`}>
                       {card.value}
@@ -140,8 +145,87 @@ const AdminDashboard = () => {
                 </div>
               </Link>
             </motion.div>
-          )}
-        )}
+          )
+        })}
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* User Growth Chart */}
+        <div className="bg-primary-900/40 border border-primary-800/80 rounded-2xl p-6 shadow-luxury">
+          <h3 className="text-xs font-bold text-primary-200 mb-4 uppercase tracking-wider">User Signup Growth</h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={analytics?.userGrowth || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorSignups" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis dataKey="month" stroke="#64748B" fontSize={10} />
+                <YAxis stroke="#64748B" fontSize={10} />
+                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', fontSize: '11px' }} />
+                <Area type="monotone" dataKey="Signups" stroke="#D4AF37" strokeWidth={2} fillOpacity={1} fill="url(#colorSignups)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Pet Categories Chart */}
+        <div className="bg-primary-900/40 border border-primary-800/80 rounded-2xl p-6 shadow-luxury">
+          <h3 className="text-xs font-bold text-primary-200 mb-4 uppercase tracking-wider">Pet Category Distribution</h3>
+          <div className="h-64 flex items-center justify-center">
+            {analytics?.categories && analytics.categories.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={analytics.categories}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={75}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {analytics.categories.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', fontSize: '11px' }} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px', color: '#94a3b8' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <span className="text-primary-500 text-xs">No listing data available</span>
+            )}
+          </div>
+        </div>
+
+        {/* Breed Popularity Chart */}
+        <div className="bg-primary-900/40 border border-primary-800/80 rounded-2xl p-6 shadow-luxury lg:col-span-2">
+          <h3 className="text-xs font-bold text-primary-200 mb-4 uppercase tracking-wider">Top Breed Popularity</h3>
+          <div className="h-64">
+            {analytics?.breeds && analytics.breeds.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.breeds} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                  <XAxis dataKey="name" stroke="#64748B" fontSize={10} />
+                  <YAxis stroke="#64748B" fontSize={10} />
+                  <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', fontSize: '11px' }} />
+                  <Bar dataKey="count" fill="#AA7C11" radius={[4, 4, 0, 0]}>
+                    {analytics.breeds.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <span className="text-primary-500 text-xs">No breed data available</span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Admin Actions Panel */}

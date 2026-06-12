@@ -105,8 +105,12 @@ const getPetById = async (req, res) => {
       }
     }
 
-    // Increment view count
-    await Pet.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    // Increment view count if user is anonymous OR user is not the seller
+    const shouldCountView = !req.user || (req.user._id.toString() !== pet.seller._id.toString());
+    if (shouldCountView) {
+      await Pet.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+      pet.views += 1;
+    }
 
     res.json({ success: true, pet });
   } catch (err) {
@@ -123,6 +127,20 @@ const createPet = async (req, res) => {
       petName, petType, breed, gender, ageValue, ageUnit,
       price, city, state, pincode, description, vaccinationStatus
     } = req.body;
+
+    // Check for duplicate pet listing
+    const duplicate = await Pet.findOne({
+      seller: req.user._id,
+      petName: petName.trim(),
+      petType,
+      breed: breed.trim(),
+      price: Number(price),
+      'location.city': city.trim()
+    });
+
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: 'A listing with these exact details already exists!' });
+    }
 
     // Upload images to Cloudinary
     let images = [];
@@ -188,11 +206,20 @@ const updateMyPet = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     if (pet.status === 'approved') {
+      // Allow ONLY updating availability
+      if (req.body.availability !== undefined) {
+        const updatedPet = await Pet.findByIdAndUpdate(
+          req.params.id,
+          { availability: req.body.availability },
+          { new: true }
+        );
+        return res.json({ success: true, message: 'Pet availability updated', pet: updatedPet });
+      }
       return res.status(400).json({ success: false, message: 'Approved listings cannot be edited. Contact admin.' });
     }
 
     const updates = req.body;
-    delete updates.status; // User cannot change status
+    delete updates.status;
     delete updates.featured;
 
     const updatedPet = await Pet.findByIdAndUpdate(req.params.id, updates, { new: true });

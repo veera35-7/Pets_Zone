@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, Trash2, Plus, AlertCircle, Info, Calendar, MapPin, Loader2 } from 'lucide-react'
 import api from '../../lib/axios'
 import StatusBadge from '../../components/StatusBadge'
+import toast from 'react-hot-toast'
 
 const MyListingsPage = () => {
   const [pets, setPets] = useState([])
@@ -38,6 +39,19 @@ const MyListingsPage = () => {
       alert(err.response?.data?.message || 'Failed to delete listing.')
     } finally {
       setDeleteLoading(false)
+    }
+  }
+
+  const toggleAvailability = async (petId, currentAvailability) => {
+    const nextAvailability = currentAvailability === 'Sold Out' ? 'Available' : 'Sold Out'
+    try {
+      const { data } = await api.put(`/pets/${petId}`, { availability: nextAvailability })
+      if (data.success) {
+        setPets((prev) => prev.map((p) => p._id === petId ? { ...p, availability: nextAvailability } : p))
+        toast.success(`Listing marked as ${nextAvailability}!`)
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update availability.')
     }
   }
 
@@ -135,13 +149,25 @@ const MyListingsPage = () => {
                 {/* Actions */}
                 <div className="flex items-center gap-2 mt-5 pt-4 border-t border-primary-800/60">
                   {pet.status === 'approved' ? (
-                    <Link
-                      to={`/pet/${pet._id}`}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-primary-800 hover:bg-primary-700 text-primary-100 py-2.5 rounded-xl text-xs font-semibold transition-all"
-                    >
-                      <Eye size={14} />
-                      View Listing
-                    </Link>
+                    <>
+                      <Link
+                        to={`/pet/${pet._id}`}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-primary-800 hover:bg-primary-700 text-primary-100 py-2.5 rounded-xl text-xs font-semibold transition-all"
+                      >
+                        <Eye size={14} />
+                        View
+                      </Link>
+                      <button
+                        onClick={() => toggleAvailability(pet._id, pet.availability)}
+                        className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all shrink-0 ${
+                          pet.availability === 'Sold Out'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                            : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                        }`}
+                      >
+                        {pet.availability === 'Sold Out' ? 'Make Available' : 'Mark Sold'}
+                      </button>
+                    </>
                   ) : (
                     <button
                       disabled

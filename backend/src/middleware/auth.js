@@ -25,6 +25,7 @@ const protect = async (req, res, next) => {
     }
 
     req.user = user;
+    User.findByIdAndUpdate(user._id, { lastActive: new Date() }).exec().catch(err => console.error('lastActive err:', err.message));
     next();
   } catch (err) {
     return res.status(401).json({ success: false, message: 'Token invalid or expired.' });
@@ -43,7 +44,11 @@ const optionalAuth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-password');
+    if (user && user.isActive) {
+      req.user = user;
+      User.findByIdAndUpdate(user._id, { lastActive: new Date() }).exec().catch(err => console.error('lastActive err:', err.message));
+    }
   } catch (err) {
     // Silent fail for optional auth
   }

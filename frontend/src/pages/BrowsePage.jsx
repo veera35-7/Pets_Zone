@@ -8,7 +8,7 @@ import Footer from '../components/Footer'
 import PetCard from '../components/PetCard'
 import WhatsAppFAB from '../components/WhatsAppFAB'
 
-const petTypes = ['all', 'Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Cow', 'Other']
+const petTypes = ['all', 'Goat', 'Rabbit', 'Chicken', 'Duck', 'Guinea Pig', 'Other']
 const sortOptions = [
   { value: 'newest', label: 'Newest First' },
   { value: 'oldest', label: 'Oldest First' },
@@ -126,7 +126,7 @@ const BrowsePage = () => {
 
               {/* Pet Type Filter */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {petTypes.slice(0, 5).map(type => (
+                {petTypes.map(type => (
                   <button
                     key={type}
                     onClick={() => setSelectedType(type)}

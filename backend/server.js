@@ -10,6 +10,7 @@ const petRoutes = require('./src/routes/pets');
 const adminRoutes = require('./src/routes/admin');
 const enquiryRoutes = require('./src/routes/enquiries');
 const favoriteRoutes = require('./src/routes/favorites');
+const notificationRoutes = require('./src/routes/notifications');
 const { globalLimiter } = require('./src/middleware/rateLimiter');
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/pets', petRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -76,6 +78,10 @@ const connectAndStart = async () => {
     // Seed admin on first run
     const { seedAdmin } = require('./src/utils/seedAdmin');
     await seedAdmin();
+
+    // Seed pets on first run
+    const { seedPets } = require('./src/utils/seedPets');
+    await seedPets();
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {

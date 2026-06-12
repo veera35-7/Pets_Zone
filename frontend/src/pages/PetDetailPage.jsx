@@ -10,6 +10,7 @@ import EnquiryModal from '../components/EnquiryModal'
 import WhatsAppFAB from '../components/WhatsAppFAB'
 import toast from 'react-hot-toast'
 import useAuthStore from '../store/authStore'
+import breedHistory from '../lib/breedHistory'
 
 const PetDetailPage = () => {
   const { id } = useParams()
@@ -112,6 +113,13 @@ const PetDetailPage = () => {
                   alt={pet.petName}
                   className="w-full h-full object-cover"
                 />
+                {pet.availability === 'Sold Out' && (
+                  <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px] flex items-center justify-center z-10">
+                    <span className="bg-red-500 text-white font-black px-6 py-2.5 rounded-full text-base tracking-widest uppercase shadow-luxury border-2 border-red-400 rotate-[-8deg]">
+                      Sold Out
+                    </span>
+                  </div>
+                )}
                 {pet.featured && (
                   <div className="absolute top-4 left-4"><span className="badge-featured">⭐ Featured</span></div>
                 )}
@@ -200,7 +208,38 @@ const PetDetailPage = () => {
               <div>
                 <h3 className="text-primary-200 font-semibold mb-2">About This Pet</h3>
                 <p className="text-primary-400 text-sm leading-relaxed">{pet.description}</p>
+                <div className="mt-3 text-xs text-primary-500">
+                  Issues with this listing? <a href="mailto:support@rvpetszone.com" className="text-primary-300 underline underline-offset-2">Contact Support</a>
+                </div>
               </div>
+
+              {/* Breed History / Origin Info */}
+              {(() => {
+                const breedInfo = breedHistory[pet.breed] || breedHistory[Object.keys(breedHistory).find(k => pet.breed.toLowerCase().includes(k.toLowerCase()))];
+                if (!breedInfo) return null;
+                return (
+                  <div className="bg-gradient-to-r from-accent-gold/10 to-transparent border border-accent-gold/25 rounded-2xl p-5 shadow-luxury space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-accent-gold/5 rounded-full blur-xl pointer-events-none" />
+                    <h4 className="text-sm font-bold text-accent-gold tracking-wider uppercase flex items-center gap-1.5">
+                      📜 Breed History & Origin Info
+                    </h4>
+                    <div className="space-y-2.5">
+                      <div>
+                        <span className="text-[10px] text-primary-500 font-bold uppercase tracking-wider block">Country / Region of Origin</span>
+                        <span className="text-primary-200 text-xs font-semibold">{breedInfo.origin}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-primary-500 font-bold uppercase tracking-wider block">History & Background</span>
+                        <p className="text-primary-300 text-xs leading-relaxed">{breedInfo.history}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-primary-500 font-bold uppercase tracking-wider block">Breed Characteristics</span>
+                        <p className="text-primary-300 text-xs leading-relaxed">{breedInfo.characteristics}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Seller Info */}
               <div className="bg-primary-900 rounded-xl p-4 border border-primary-800">

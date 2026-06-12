@@ -55,6 +55,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'approved', 'rejected', 'none'],
     default: 'none'
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   }
 }, { timestamps: true });
 

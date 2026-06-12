@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, User, Heart, LogOut, PlusCircle, LayoutDashboard, Bell } from 'lucide-react'
+import { Menu, X, User, Heart, LogOut, PlusCircle, LayoutDashboard } from 'lucide-react'
 import useAuthStore from '../store/authStore'
+import NotificationBell from './NotificationBell'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
@@ -80,6 +81,7 @@ const Navbar = () => {
                   <PlusCircle size={16} />
                   List Pet
                 </Link>
+                <NotificationBell />
                 <div className="relative group">
                   <button className="w-10 h-10 rounded-full bg-primary-800 border border-primary-700 flex items-center justify-center hover:border-primary-400 transition-colors">
                     <User size={18} className="text-primary-300" />

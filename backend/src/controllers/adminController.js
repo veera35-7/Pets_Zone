@@ -8,19 +8,103 @@ const { uploadToCloudinary, deleteFromCloudinary } = require('../middleware/uplo
 // @route GET /api/admin/stats
 const getStats = async (req, res) => {
   try {
-    const [totalUsers, totalPets, pendingPets, approvedPets, rejectedPets, totalEnquiries, unreadEnquiries] = await Promise.all([
-      User.countDocuments({ role: 'user' }),
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+    const [
+      totalUsers,
+      activeUsers,
+      totalPets,
+      pendingPets,
+      approvedPets,
+      rejectedPets,
+      totalEnquiries,
+      unreadEnquiries,
+      viewsAgg
+    ] = await Promise.all([
+      User.countDocuments({ role: { $nin: ['admin', 'superadmin'] } }),
+      User.countDocuments({ lastActive: { $gte: fifteenMinutesAgo } }),
       Pet.countDocuments(),
       Pet.countDocuments({ status: 'pending' }),
       Pet.countDocuments({ status: 'approved' }),
       Pet.countDocuments({ status: 'rejected' }),
       Enquiry.countDocuments(),
-      Enquiry.countDocuments({ adminRead: false })
+      Enquiry.countDocuments({ adminRead: false }),
+      Pet.aggregate([
+        { $group: { _id: null, totalViews: { $sum: '$views' } } }
+      ])
     ]);
+
+    const totalViews = viewsAgg[0]?.totalViews || 0;
+    const conversionRate = totalViews > 0 ? ((totalEnquiries / totalViews) * 100).toFixed(1) : 0;
+
+    // 1. User Growth (Last 6 Months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const growthAgg = await User.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo }, role: { $nin: ['admin', 'superadmin'] } } },
+      {
+        $group: {
+          _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    ]);
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const userGrowthData = [];
+    
+    // Fill empty months with zero count
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      
+      const found = growthAgg.find(g => g._id.month === m && g._id.year === y);
+      userGrowthData.push({
+        month: `${monthNames[m - 1]} ${y}`,
+        Signups: found ? found.count : 0
+      });
+    }
+
+    // 2. Category Distribution
+    const catAgg = await Pet.aggregate([
+      { $group: { _id: '$petType', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    const categoryData = catAgg.map(c => ({ name: c._id, value: c.count }));
+
+    // 3. Breed Popularity (Top 5)
+    const breedAgg = await Pet.aggregate([
+      { $group: { _id: '$breed', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+    const breedData = breedAgg.map(b => ({ name: b._id, count: b.count }));
 
     res.json({
       success: true,
-      stats: { totalUsers, totalPets, pendingPets, approvedPets, rejectedPets, totalEnquiries, unreadEnquiries }
+      stats: {
+        totalUsers,
+        activeUsers,
+        totalPets,
+        pendingPets,
+        approvedPets,
+        rejectedPets,
+        totalEnquiries,
+        unreadEnquiries,
+        totalViews,
+        conversionRate: Number(conversionRate)
+      },
+      analytics: {
+        userGrowth: userGrowthData,
+        categories: categoryData,
+        breeds: breedData
+      }
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

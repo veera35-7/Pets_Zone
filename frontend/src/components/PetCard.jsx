@@ -56,11 +56,33 @@ const PetCard = ({ pet, onFavoriteToggle, isFavorited = false }) => {
             src={imgError ? 'https://placehold.co/400x400/171717/737373?text=No+Image' : primaryImage}
             alt={pet.petName}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+              pet.availability === 'Sold Out' ? 'opacity-40 grayscale-[20%]' : ''
+            }`}
             loading="lazy"
           />
           {/* Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-primary-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+          {/* Availability Badge */}
+          <div className="absolute bottom-3 left-3 z-10">
+            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shadow-md ${
+              pet.availability === 'Sold Out'
+                ? 'bg-red-500/90 text-white border border-red-400'
+                : 'bg-emerald-500/90 text-white border border-emerald-400'
+            }`}>
+              {pet.availability || 'Available'}
+            </span>
+          </div>
+
+          {/* Sold Out Text Overlay */}
+          {pet.availability === 'Sold Out' && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
+              <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full border border-red-400 rotate-[-6deg] tracking-widest uppercase shadow-luxury">
+                Sold Out
+              </span>
+            </div>
+          )}
 
           {/* Featured Badge */}
           {pet.featured && (

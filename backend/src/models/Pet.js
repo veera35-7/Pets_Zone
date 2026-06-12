@@ -15,7 +15,7 @@ const petSchema = new mongoose.Schema({
   petType: {
     type: String,
     required: [true, 'Pet type is required'],
-    enum: ['Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Reptile', 'Cow', 'Other'],
+    enum: ['Dog', 'Cat', 'Bird', 'Fish', 'Rabbit', 'Hamster', 'Reptile', 'Cow', 'Goat', 'Chicken', 'Duck', 'Guinea Pig', 'Other'],
     trim: true
   },
   breed: {
@@ -23,6 +23,11 @@ const petSchema = new mongoose.Schema({
     required: [true, 'Breed is required'],
     trim: true,
     maxlength: [100, 'Breed cannot exceed 100 characters']
+  },
+  availability: {
+    type: String,
+    enum: ['Available', 'Sold Out'],
+    default: 'Available'
   },
   gender: {
     type: String,

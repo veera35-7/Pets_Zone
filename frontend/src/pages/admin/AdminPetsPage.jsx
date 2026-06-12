@@ -164,6 +164,7 @@ const AdminPetsPage = () => {
                 <th className="p-4">Location</th>
                 <th className="p-4">Price</th>
                 <th className="p-4">Review Status</th>
+                <th className="p-4">Availability</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -207,6 +208,29 @@ const AdminPetsPage = () => {
                   {/* Review Status */}
                   <td className="p-4">
                     <StatusBadge status={pet.status} />
+                  </td>
+
+                  {/* Availability */}
+                  <td className="p-4">
+                    <button
+                      onClick={async () => {
+                        const nextAvail = pet.availability === 'Sold Out' ? 'Available' : 'Sold Out';
+                        try {
+                          await api.put(`/admin/pets/${pet._id}`, { availability: nextAvail });
+                          setPets(prev => prev.map(p => p._id === pet._id ? { ...p, availability: nextAvail } : p));
+                          toast.success(`Listing marked as ${nextAvail}`);
+                        } catch {
+                          toast.error('Failed to update availability');
+                        }
+                      }}
+                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border transition-colors ${
+                        pet.availability === 'Sold Out'
+                          ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20'
+                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      {pet.availability || 'Available'}
+                    </button>
                   </td>
 
                   {/* Actions */}

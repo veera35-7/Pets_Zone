@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['pet_approved', 'pet_rejected', 'new_enquiry', 'system'],
+    enum: ['pet_approved', 'pet_rejected', 'new_enquiry', 'seller_approved', 'seller_rejected', 'system'],
     default: 'system'
   },
   relatedPet: {
