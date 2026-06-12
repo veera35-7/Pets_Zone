@@ -105,8 +105,12 @@ const getPetById = async (req, res) => {
       }
     }
 
-    // Increment view count if user is anonymous OR user is not the seller
-    const shouldCountView = !req.user || (req.user._id.toString() !== pet.seller._id.toString());
+    // Increment view count if user is anonymous OR (user is not seller AND user is not admin/superadmin)
+    const isOwnerOrAdmin = req.user && (
+      req.user._id.toString() === pet.seller._id.toString() ||
+      ['admin', 'superadmin'].includes(req.user.role)
+    );
+    const shouldCountView = !isOwnerOrAdmin;
     if (shouldCountView) {
       await Pet.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
       pet.views += 1;

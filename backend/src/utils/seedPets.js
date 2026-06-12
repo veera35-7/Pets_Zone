@@ -110,7 +110,9 @@ const seedPets = async () => {
   try {
     // 1. Create or Verify Demo Buyer User
     const demoEmail = 'buyer@rvpetszone.com';
-    let demoUser = await User.findOne({ email: demoEmail });
+    let demoUser = await User.findOne({
+      $or: [{ email: demoEmail }, { mobile: '9876543210' }]
+    });
 
     if (!demoUser) {
       demoUser = await User.create({
@@ -122,7 +124,7 @@ const seedPets = async () => {
       });
       console.log(`✅ Demo Buyer User created: ${demoEmail}`);
     } else {
-      console.log(`ℹ️  Demo Buyer User already exists: ${demoEmail}`);
+      console.log(`ℹ️  Demo Buyer User already exists: ${demoUser.email}`);
     }
 
     // Get Admin user to assign listings to (if user hasn't registered any)
@@ -188,7 +190,7 @@ const seedPets = async () => {
           gender: Math.random() < 0.5 ? 'Male' : 'Female',
           age: {
             value: Math.floor(Math.random() * 11) + 1,
-            unit: Math.random() < 0.7 ? 'Months' : 'Weeks'
+            unit: Math.random() < 0.7 ? 'Months' : 'Days'
           },
           price,
           location: {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, User, Heart, LogOut, PlusCircle, LayoutDashboard } from 'lucide-react'
+import { Menu, X, User, Heart, LogOut, PlusCircle, LayoutDashboard, MessageSquare } from 'lucide-react'
 import useAuthStore from '../store/authStore'
 import NotificationBell from './NotificationBell'
 
@@ -30,6 +30,7 @@ const Navbar = () => {
   const navLinks = [
     { label: 'Home', to: '/' },
     { label: 'Browse Pets', to: '/browse' },
+    { label: 'AI Matchmaker', to: '/recommendations' },
   ]
 
   return (
@@ -95,6 +96,9 @@ const Navbar = () => {
                     <div className="py-2">
                       <Link to="/dashboard" className="flex items-center gap-3 px-4 py-2 text-sm text-primary-300 hover:text-white hover:bg-primary-800 transition-colors">
                         <LayoutDashboard size={15} /> Dashboard
+                      </Link>
+                      <Link to="/dashboard/chat" className="flex items-center gap-3 px-4 py-2 text-sm text-primary-300 hover:text-white hover:bg-primary-800 transition-colors">
+                        <MessageSquare size={15} /> Chat Inbox
                       </Link>
                       <Link to="/dashboard/favorites" className="flex items-center gap-3 px-4 py-2 text-sm text-primary-300 hover:text-white hover:bg-primary-800 transition-colors">
                         <Heart size={15} /> Favorites

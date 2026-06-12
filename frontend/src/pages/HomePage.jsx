@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Star, Shield, Zap } from 'lucide-react'
+import { ArrowRight, Star, Shield, Zap, Sparkles } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/axios'
 import Navbar from '../components/Navbar'
@@ -46,6 +46,9 @@ const HeroSection = () => (
           <Link to="/browse" className="btn-primary text-base px-8 py-4 group">
             Browse Pets
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+          </Link>
+          <Link to="/recommendations" className="flex items-center gap-2 px-8 py-4 bg-accent-gold/10 hover:bg-accent-gold/20 border border-accent-gold/30 hover:border-accent-gold/50 text-accent-gold rounded-xl text-base font-bold transition-all">
+            <Sparkles size={16} /> Find Matches Quiz
           </Link>
           <Link to="/signup" className="btn-outline text-base px-8 py-4">
             List Your Pet

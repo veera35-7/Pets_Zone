@@ -15,18 +15,27 @@ const createEnquiry = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cannot enquire about this listing' });
     }
 
+    let alreadyEnquired = false;
+    if (req.user) {
+      alreadyEnquired = await Enquiry.exists({ pet: petId, enquirer: req.user._id });
+    } else {
+      alreadyEnquired = await Enquiry.exists({ pet: petId, email: email.trim().toLowerCase() });
+    }
+
     const enquiry = await Enquiry.create({
       pet: petId,
       seller: pet.seller,
       enquirer: req.user?._id || null,
       name,
       mobile,
-      email,
+      email: email.trim().toLowerCase(),
       message
     });
 
-    // Increment pet enquiry count
-    await Pet.findByIdAndUpdate(petId, { $inc: { enquiryCount: 1 } });
+    // Increment pet enquiry count ONLY if this is the first enquiry from this user/email
+    if (!alreadyEnquired) {
+      await Pet.findByIdAndUpdate(petId, { $inc: { enquiryCount: 1 } });
+    }
 
     // Notify seller
     await Notification.create({

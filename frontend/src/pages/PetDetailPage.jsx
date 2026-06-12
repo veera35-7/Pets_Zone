@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { MapPin, Calendar, Tag, Shield, ArrowLeft, Heart, Phone, MessageCircle, Share2, Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MapPin, Calendar, Tag, Shield, ArrowLeft, Heart, Phone, MessageCircle, Share2, Eye, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import api from '../lib/axios'
 import Navbar from '../components/Navbar'
@@ -15,12 +15,13 @@ import breedHistory from '../lib/breedHistory'
 const PetDetailPage = () => {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
   const [selectedImg, setSelectedImg] = useState(0)
   const [enquiryOpen, setEnquiryOpen] = useState(false)
   const [favorited, setFavorited] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['pet', id],
     queryFn: () => api.get(`/pets/${id}`).then(r => r.data.pet)
   })
@@ -53,6 +54,101 @@ const PetDetailPage = () => {
     } else {
       navigator.clipboard.writeText(window.location.href)
       toast.success('Link copied to clipboard!')
+    }
+  }
+
+  const handlePayment = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to reserve listings.')
+      return navigate('/login')
+    }
+
+    setPaymentLoading(true)
+    try {
+      const { data: orderData } = await api.post('/payments/order', { petId: pet._id })
+
+      const loadScript = () => {
+        return new Promise((resolve) => {
+          const script = document.createElement('script')
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          script.onload = () => resolve(true)
+          script.onerror = () => resolve(false)
+          document.body.appendChild(script)
+        })
+      }
+
+      const scriptLoaded = await loadScript()
+      if (!scriptLoaded) {
+        toast.error('Razorpay SDK failed to load. Are you offline?')
+        setPaymentLoading(false)
+        return
+      }
+
+      // If mock order, handle mock checkout flow instantly
+      if (orderData.orderId.startsWith('mock_order_')) {
+        toast.loading('Simulating Payment Sandbox...', { duration: 2000 })
+        setTimeout(async () => {
+          try {
+            const { data: verifyData } = await api.post('/payments/verify', {
+              razorpayOrderId: orderData.orderId,
+              razorpayPaymentId: `mock_pay_${Date.now()}`,
+              razorpaySignature: 'mock_signature'
+            })
+            if (verifyData.success) {
+              toast.success('🎉 Pet listing reserved successfully!')
+              refetch()
+            }
+          } catch (err) {
+            toast.error('Payment verification failed.')
+          } finally {
+            setPaymentLoading(false)
+          }
+        }, 2000)
+        return
+      }
+
+      // Real Razorpay options
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'RV Pets Zone',
+        description: `Reservation for ${orderData.petName} (${orderData.petBreed})`,
+        image: '/logo.jpg',
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          setPaymentLoading(true)
+          try {
+            const { data: verifyData } = await api.post('/payments/verify', {
+              razorpayOrderId: orderData.orderId,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            })
+            if (verifyData.success) {
+              toast.success('🎉 Pet listing reserved successfully!')
+              refetch()
+            }
+          } catch (err) {
+            toast.error(err.response?.data?.message || 'Verification failed.')
+          } finally {
+            setPaymentLoading(false)
+          }
+        },
+        prefill: {
+          name: user?.fullName || '',
+          email: user?.email || '',
+          contact: user?.mobile || ''
+        },
+        theme: {
+          color: '#D4AF37'
+        }
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to initialize payment.')
+      setPaymentLoading(false)
     }
   }
 
@@ -257,13 +353,44 @@ const PetDetailPage = () => {
                 </div>
               </div>
 
+              {/* Razorpay SaaS Payment Flow */}
+              <div className="mb-4">
+                {pet.availability === 'Available' ? (
+                  <button
+                    onClick={handlePayment}
+                    disabled={paymentLoading}
+                    className="w-full bg-accent-gold hover:bg-accent-gold-light text-primary-950 font-black py-3.5 rounded-xl text-sm transition-all duration-300 hover:shadow-luxury hover:scale-[1.01] flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    {paymentLoading ? (
+                      <><Loader2 size={16} className="animate-spin" /> Processing Payment...</>
+                    ) : (
+                      <>💳 Buy & Reserve Pet (Razorpay)</>
+                    )}
+                  </button>
+                ) : pet.availability === 'Reserved' ? (
+                  <div className="w-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                    🔒 Reserved / Payment Received
+                  </div>
+                ) : (
+                  <div className="w-full bg-red-500/10 text-red-400 border border-red-500/20 font-bold py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                    🚫 Sold Out
+                  </div>
+                )}
+              </div>
+
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setEnquiryOpen(true)}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toast.error('Please login to chat with the seller.')
+                      return navigate('/login')
+                    }
+                    navigate(`/dashboard/chat?partnerId=${pet.seller._id}&name=${encodeURIComponent(pet.seller.fullName)}`)
+                  }}
                   className="btn-primary justify-center"
                 >
-                  <MessageCircle size={16} /> Enquire Now
+                  <MessageCircle size={16} /> Chat with Seller
                 </button>
                 <button
                   onClick={handleWhatsApp}

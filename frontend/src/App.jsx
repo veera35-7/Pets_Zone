@@ -5,6 +5,7 @@ import useAuthStore from './store/authStore'
 import HomePage from './pages/HomePage'
 import BrowsePage from './pages/BrowsePage'
 import PetDetailPage from './pages/PetDetailPage'
+import RecommendationPage from './pages/RecommendationPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
@@ -16,6 +17,7 @@ import AddPetPage from './pages/dashboard/AddPetPage'
 import FavoritesPage from './pages/dashboard/FavoritesPage'
 import EnquiriesPage from './pages/dashboard/EnquiriesPage'
 import SettingsPage from './pages/dashboard/SettingsPage'
+import ChatPage from './pages/dashboard/ChatPage'
 
 // Admin pages
 import AdminLayout from './pages/admin/AdminLayout'
@@ -51,6 +53,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/browse" element={<BrowsePage />} />
         <Route path="/pet/:id" element={<PetDetailPage />} />
+        <Route path="/recommendations" element={<RecommendationPage />} />
 
         {/* Auth Routes */}
         <Route path="/login" element={<GuestRoute><LoginPage /></GuestRoute>} />
@@ -65,6 +68,7 @@ function App() {
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="enquiries" element={<EnquiriesPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
 
         {/* Admin Panel */}

@@ -11,6 +11,8 @@ const adminRoutes = require('./src/routes/admin');
 const enquiryRoutes = require('./src/routes/enquiries');
 const favoriteRoutes = require('./src/routes/favorites');
 const notificationRoutes = require('./src/routes/notifications');
+const paymentRoutes = require('./src/routes/payments');
+const chatRoutes = require('./src/routes/chat');
 const { globalLimiter } = require('./src/middleware/rateLimiter');
 
 const app = express();
@@ -47,6 +49,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -75,16 +79,44 @@ const connectAndStart = async () => {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ MongoDB Atlas connected');
 
-    // Seed admin on first run
-    const { seedAdmin } = require('./src/utils/seedAdmin');
-    await seedAdmin();
+    const http = require('http');
+    const { Server } = require('socket.io');
 
-    // Seed pets on first run
-    const { seedPets } = require('./src/utils/seedPets');
-    await seedPets();
+    const server = http.createServer(app);
+    const io = new Server(server, {
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+      }
+    });
+
+    // Socket.io Real-Time Chat Engine
+    io.on('connection', (socket) => {
+      socket.on('join_room', (roomId) => {
+        socket.join(roomId);
+      });
+
+      socket.on('send_message', async (data) => {
+        const { sender, receiver, message, room } = data;
+        try {
+          const Chat = require('./src/models/Chat');
+          const newChat = await Chat.create({ sender, receiver, message });
+          
+          io.to(room).emit('receive_message', newChat);
+        } catch (err) {
+          console.error('Socket send message err:', err.message);
+        }
+      });
+
+      socket.on('typing', (data) => {
+        socket.to(data.room).emit('typing', { isTyping: data.isTyping, sender: data.sender });
+      });
+
+      socket.on('disconnect', () => {});
+    });
 
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     });
   } catch (err) {

@@ -26,7 +26,7 @@ const petSchema = new mongoose.Schema({
   },
   availability: {
     type: String,
-    enum: ['Available', 'Sold Out'],
+    enum: ['Available', 'Reserved', 'Sold Out'],
     default: 'Available'
   },
   gender: {

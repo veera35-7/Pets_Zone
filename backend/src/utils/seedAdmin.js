@@ -3,7 +3,9 @@ const User = require('../models/User');
 const seedAdmin = async () => {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@rvpetszone.com';
-    const existingAdmin = await User.findOne({ email: adminEmail });
+    const existingAdmin = await User.findOne({
+      $or: [{ email: adminEmail }, { mobile: '9999999999' }]
+    });
 
     if (!existingAdmin) {
       await User.create({
@@ -15,7 +17,7 @@ const seedAdmin = async () => {
       });
       console.log(`✅ Admin account created: ${adminEmail}`);
     } else {
-      console.log(`ℹ️  Admin already exists: ${adminEmail}`);
+      console.log(`ℹ️  Admin already exists: ${existingAdmin.email}`);
     }
   } catch (err) {
     console.error('❌ Admin seed error:', err.message);
