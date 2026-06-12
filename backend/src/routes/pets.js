@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getPets, getFeaturedPets, getTrendingPets, getPetById,
-  createPet, getMyPets, updateMyPet, deleteMyPet
+  createPet, getMyPets, updateMyPet, deleteMyPet, getRecommendations
 } = require('../controllers/petController');
 const { protect, optionalAuth } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
@@ -13,6 +13,7 @@ router.get('/', getPets);
 router.get('/featured', getFeaturedPets);
 router.get('/trending', getTrendingPets);
 router.get('/my', protect, getMyPets);
+router.get('/recommendations', getRecommendations);
 router.get('/:id', optionalAuth, getPetById);
 
 // Protected routes

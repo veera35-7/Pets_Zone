@@ -75,6 +75,13 @@ const verifyPayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Transaction record not found.' });
     }
 
+    if (transaction.status === 'paid') {
+      return res.json({
+        success: true,
+        message: 'Payment already verified successfully and listing is Reserved!'
+      });
+    }
+
     const isMock = razorpayOrderId.startsWith('mock_order_');
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 

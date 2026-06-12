@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Users, ClipboardList, Clock, CheckCircle, XCircle, MessageSquare, Shield, Loader2, Sparkles, Eye, TrendingUp } from 'lucide-react'
+import { Users, ClipboardList, Clock, CheckCircle, XCircle, MessageSquare, Shield, Loader2, Sparkles, Eye, TrendingUp, DollarSign } from 'lucide-react'
 import api from '../../lib/axios'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts'
 
@@ -58,12 +58,21 @@ const AdminDashboard = () => {
       isLive: true
     },
     {
-      title: 'Total Views',
-      value: stats.totalViews || 0,
-      icon: Eye,
-      color: 'text-primary-100',
-      bg: 'bg-primary-900/40',
+      title: 'Total Revenue',
+      value: `₹${(stats.totalRevenue || 0).toLocaleString('en-IN')}`,
+      icon: DollarSign,
+      color: 'text-accent-gold font-extrabold',
+      bg: 'bg-accent-gold/5',
+      border: 'border-accent-gold/20',
       link: '/admin/pets'
+    },
+    {
+      title: 'Conversion Funnel',
+      value: `${stats.totalViews || 0} 👁️ → ${stats.totalEnquiries || 0} 📩 → ${stats.totalPayments || 0} 💳`,
+      icon: ClipboardList,
+      color: 'text-primary-100 font-semibold',
+      bg: 'bg-primary-900/40',
+      link: '/admin/enquiries'
     },
     {
       title: 'Conversion Rate',
@@ -82,15 +91,6 @@ const AdminDashboard = () => {
       bg: 'bg-amber-500/5',
       border: 'border-amber-500/20',
       link: '/admin/pets?status=pending'
-    },
-    {
-      title: 'Approved Listings',
-      value: stats.approvedPets || 0,
-      icon: CheckCircle,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/5',
-      border: 'border-emerald-500/20',
-      link: '/admin/pets?status=approved'
     }
   ]
 

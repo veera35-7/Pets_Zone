@@ -2,6 +2,7 @@ const Pet = require('../models/Pet');
 const User = require('../models/User');
 const Enquiry = require('../models/Enquiry');
 const Notification = require('../models/Notification');
+const Transaction = require('../models/Transaction');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../middleware/upload');
 
 // @desc  Admin dashboard stats
@@ -19,7 +20,9 @@ const getStats = async (req, res) => {
       rejectedPets,
       totalEnquiries,
       unreadEnquiries,
-      viewsAgg
+      viewsAgg,
+      totalPayments,
+      revenueAgg
     ] = await Promise.all([
       User.countDocuments({ role: { $nin: ['admin', 'superadmin'] } }),
       User.countDocuments({ lastActive: { $gte: fifteenMinutesAgo } }),
@@ -31,11 +34,17 @@ const getStats = async (req, res) => {
       Enquiry.countDocuments({ adminRead: false }),
       Pet.aggregate([
         { $group: { _id: null, totalViews: { $sum: '$views' } } }
+      ]),
+      Transaction.countDocuments({ status: 'paid' }),
+      Transaction.aggregate([
+        { $match: { status: 'paid' } },
+        { $group: { _id: null, totalRevenue: { $sum: '$amount' } } }
       ])
     ]);
 
     const totalViews = viewsAgg[0]?.totalViews || 0;
     const conversionRate = totalViews > 0 ? ((totalEnquiries / totalViews) * 100).toFixed(1) : 0;
+    const totalRevenue = revenueAgg[0]?.totalRevenue || 0;
 
     // 1. User Growth (Last 6 Months)
     const sixMonthsAgo = new Date();
@@ -98,7 +107,9 @@ const getStats = async (req, res) => {
         totalEnquiries,
         unreadEnquiries,
         totalViews,
-        conversionRate: Number(conversionRate)
+        conversionRate: Number(conversionRate),
+        totalRevenue,
+        totalPayments
       },
       analytics: {
         userGrowth: userGrowthData,

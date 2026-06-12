@@ -24,47 +24,18 @@ const RecommendationPage = () => {
     setLoading(true);
     setStep(5); // Move to results step loading
     try {
-      // 1. Fetch available listings
-      const { data } = await api.get('/pets', {
+      const { data } = await api.get('/pets/recommendations', {
         params: {
-          limit: 100,
+          budget,
+          space,
+          experience,
           city: city || undefined
         }
       });
 
-      const allPets = data.pets || [];
-
-      // 2. Rule-Based Filters
-      const matched = allPets.filter((pet) => {
-        // Budget match
-        if (budget === 'low' && pet.price > 2000) return false;
-        if (budget === 'medium' && (pet.price < 2000 || pet.price > 8000)) return false;
-        if (budget === 'high' && pet.price < 8000) return false;
-
-        // Space match
-        if (space === 'apartment') {
-          // Apartment pets: Rabbit, Guinea Pig, Cat, Dog, Hamster, Fish
-          if (!['Rabbit', 'Guinea Pig', 'Other', 'Cat', 'Fish', 'Hamster'].includes(pet.petType)) return false;
-        } else if (space === 'house') {
-          // House pets: Rabbit, Guinea Pig, Chicken, Duck
-          if (!['Rabbit', 'Guinea Pig', 'Chicken', 'Duck', 'Other'].includes(pet.petType)) return false;
-        } else if (space === 'farm') {
-          // Farm pets: Goat, Cow, Chicken, Duck
-          if (!['Goat', 'Cow', 'Chicken', 'Duck', 'Other'].includes(pet.petType)) return false;
-        }
-
-        // Experience match
-        if (experience === 'beginner') {
-          // Beginner friendly: Rabbit, Guinea Pig, Chicken, Duck, Hamster, Fish
-          if (['Goat', 'Cow'].includes(pet.petType)) return false;
-        }
-
-        return true;
-      });
-
-      setResults(matched.slice(0, 8)); // Top 8 matches
+      setResults(data.results || []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to run matchmaker scoring:', err);
     } finally {
       setLoading(false);
     }
@@ -330,24 +301,40 @@ const RecommendationPage = () => {
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                       {results.map((pet) => (
-                        <div key={pet._id} className="relative group rounded-2xl overflow-hidden border border-primary-800 bg-primary-950/60 p-3 hover:border-accent-gold/40 transition-colors flex gap-4">
-                          <img
-                            src={pet.images?.[0]?.url || 'https://placehold.co/100'}
-                            alt={pet.petName}
-                            className="w-20 h-20 rounded-xl object-cover shrink-0"
-                          />
-                          <div className="min-w-0 flex flex-col justify-between py-1">
-                            <div>
-                              <h4 className="text-sm font-bold text-primary-100 truncate">{pet.petName}</h4>
-                              <p className="text-[11px] text-primary-400 truncate">{pet.breed} • {pet.petType}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-accent-gold font-black text-sm">₹{pet.price}</span>
-                              <Link to={`/pet/${pet._id}`} className="text-[10px] text-primary-300 hover:text-white underline font-semibold">
-                                View →
-                              </Link>
+                        <div key={pet._id} className="relative group rounded-2xl overflow-hidden border border-primary-800 bg-primary-950/60 p-4 hover:border-accent-gold/40 transition-colors flex flex-col justify-between gap-3">
+                          <div className="flex gap-4">
+                            <img
+                              src={pet.images?.[0]?.url || 'https://placehold.co/100'}
+                              alt={pet.petName}
+                              className="w-20 h-20 rounded-xl object-cover shrink-0"
+                            />
+                            <div className="min-w-0 flex-1 flex flex-col justify-between">
+                              <div>
+                                <div className="flex justify-between items-start">
+                                  <h4 className="text-sm font-bold text-primary-100 truncate">{pet.petName}</h4>
+                                  <span className="text-[10px] bg-accent-gold/20 text-accent-gold font-black px-1.5 py-0.5 rounded shrink-0 ml-1">
+                                    Score: {pet.score}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-primary-400 truncate">{pet.breed} • {pet.petType}</p>
+                              </div>
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-accent-gold font-black text-sm">₹{Number(pet.price).toLocaleString('en-IN')}</span>
+                                <Link to={`/pet/${pet._id}`} className="text-[10px] text-primary-300 hover:text-white underline font-semibold">
+                                  View Details →
+                                </Link>
+                              </div>
                             </div>
                           </div>
+                          {pet.matchDetails && pet.matchDetails.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-2 border-t border-primary-800/40">
+                              {pet.matchDetails.map((detail, idx) => (
+                                <span key={idx} className="text-[9px] bg-primary-900 text-primary-300 px-2 py-0.5 rounded-full font-medium">
+                                  ✨ {detail}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

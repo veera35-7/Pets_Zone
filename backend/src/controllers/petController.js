@@ -258,4 +258,147 @@ const deleteMyPet = async (req, res) => {
   }
 };
 
-module.exports = { getPets, getFeaturedPets, getTrendingPets, getPetById, createPet, getMyPets, updateMyPet, deleteMyPet };
+// @desc  AI Pet Matchmaker Recommendation Engine (Scoring algorithm)
+// @route GET /api/pets/recommendations
+// @access Public
+const getRecommendations = async (req, res) => {
+  try {
+    const { budget, space, experience, city } = req.query;
+
+    // Fetch all approved and available pets
+    const pets = await Pet.find({ status: 'approved', availability: 'Available' })
+      .populate('seller', 'fullName mobile email')
+      .lean();
+
+    const scoredPets = pets.map((pet) => {
+      let score = 0;
+      const matchDetails = [];
+
+      // 1. Budget scoring
+      if (budget === 'low') {
+        if (pet.price <= 2000) {
+          score += 25;
+          matchDetails.push('Perfect budget match (Low)');
+        } else if (pet.price <= 5000) {
+          score += 10;
+          matchDetails.push('Slightly over budget');
+        } else {
+          score -= 10;
+        }
+      } else if (budget === 'medium') {
+        if (pet.price > 2000 && pet.price <= 8000) {
+          score += 25;
+          matchDetails.push('Perfect budget match (Medium)');
+        } else if (pet.price <= 2000) {
+          score += 15;
+          matchDetails.push('Within budget (Economy choice)');
+        } else {
+          score -= 5;
+        }
+      } else if (budget === 'high') {
+        if (pet.price > 8000) {
+          score += 25;
+          matchDetails.push('Perfect budget match (Premium)');
+        } else {
+          score += 15;
+          matchDetails.push('Within budget');
+        }
+      }
+
+      // 2. Space scoring
+      const petType = pet.petType;
+      if (space === 'apartment') {
+        if (['Rabbit', 'Guinea Pig', 'Cat', 'Fish', 'Hamster'].includes(petType)) {
+          score += 25;
+          matchDetails.push('Excellent space suitability (Apartment-friendly)');
+        } else if (['Bird', 'Other'].includes(petType)) {
+          score += 10;
+          matchDetails.push('Moderate space suitability');
+        } else {
+          score -= 20; // goats, cows, ducks, chickens are bad for apartment
+        }
+      } else if (space === 'house') {
+        if (['Rabbit', 'Guinea Pig', 'Chicken', 'Duck', 'Cat', 'Bird', 'Hamster'].includes(petType)) {
+          score += 25;
+          matchDetails.push('Excellent space suitability (House with yard)');
+        } else if (['Goat'].includes(petType)) {
+          score += 10;
+          matchDetails.push('Moderate space suitability');
+        } else {
+          score += 5;
+        }
+      } else if (space === 'farm') {
+        if (['Goat', 'Cow', 'Chicken', 'Duck'].includes(petType)) {
+          score += 25;
+          matchDetails.push('Perfect fit for farm/large acreage');
+        } else {
+          score += 15; // all pets fit on a farm
+        }
+      }
+
+      // 3. Experience scoring
+      if (experience === 'beginner') {
+        if (['Rabbit', 'Guinea Pig', 'Hamster', 'Fish', 'Cat', 'Bird'].includes(petType)) {
+          score += 25;
+          matchDetails.push('Very beginner friendly');
+        } else if (['Goat', 'Cow'].includes(petType)) {
+          score -= 30; // hard deduction: goats/cows require expert handling
+          matchDetails.push('High care requirement (Not recommended for beginners)');
+        } else {
+          score += 10;
+        }
+      } else if (experience === 'intermediate') {
+        if (['Goat', 'Chicken', 'Duck'].includes(petType)) {
+          score += 25;
+          matchDetails.push('Good fit for intermediate experience');
+        } else {
+          score += 20;
+        }
+      } else if (experience === 'expert') {
+        score += 25; // Experts can handle any pet
+        matchDetails.push('Expert match (All care levels supported)');
+      }
+
+      // 4. Location scoring (City level match)
+      if (city && pet.location && pet.location.city) {
+        if (pet.location.city.toLowerCase() === city.toLowerCase()) {
+          score += 30;
+          matchDetails.push('Local listing (Same city)');
+        } else {
+          score += 5;
+        }
+      }
+
+      return {
+        ...pet,
+        score,
+        matchDetails
+      };
+    });
+
+    // Filter out items with very negative score
+    const filteredPets = scoredPets.filter(p => p.score > 0);
+
+    // Sort by score descending
+    filteredPets.sort((a, b) => b.score - a.score);
+
+    res.json({
+      success: true,
+      results: filteredPets.slice(0, 10)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getPets,
+  getFeaturedPets,
+  getTrendingPets,
+  getPetById,
+  createPet,
+  getMyPets,
+  updateMyPet,
+  deleteMyPet,
+  getRecommendations
+};

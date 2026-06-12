@@ -86,6 +86,13 @@ const ChatPage = () => {
     };
   }, []);
 
+  // Register user mapping
+  useEffect(() => {
+    if (socket && user?._id) {
+      socket.emit('register_user', user._id);
+    }
+  }, [socket, user]);
+
   // 3. Join room and fetch messages when conversation is selected
   useEffect(() => {
     if (!socket || !selectedConv) return;

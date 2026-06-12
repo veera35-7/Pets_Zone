@@ -43,7 +43,26 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('ServiceWorker registered:', reg.scope))
-      .catch(err => console.error('ServiceWorker failure:', err));
+      .then(reg => {
+        console.log('ServiceWorker registered:', reg.scope);
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  console.log('New update available! Please refresh.');
+                  window.dispatchEvent(new CustomEvent('swUpdateAvailable'));
+                } else {
+                  console.log('Content is cached for offline use.');
+                }
+              }
+            };
+          }
+        };
+      })
+      .catch(err => {
+        console.error('ServiceWorker registration failure, executing fallback:', err);
+      });
   });
 }

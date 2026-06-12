@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import useAuthStore from './store/authStore'
+import toast from 'react-hot-toast'
 
 // Public pages
 import HomePage from './pages/HomePage'
@@ -46,6 +48,16 @@ const GuestRoute = ({ children }) => {
 }
 
 function App() {
+  useEffect(() => {
+    const handleUpdate = () => {
+      toast.success('🔄 A new version of RV Pets Zone is available! Please refresh to reload.', {
+        duration: 10000
+      });
+    };
+    window.addEventListener('swUpdateAvailable', handleUpdate);
+    return () => window.removeEventListener('swUpdateAvailable', handleUpdate);
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

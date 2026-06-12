@@ -90,8 +90,15 @@ const connectAndStart = async () => {
       }
     });
 
+    const userSocketMap = new Map(); // tracks userId -> socket.id
+
     // Socket.io Real-Time Chat Engine
     io.on('connection', (socket) => {
+      socket.on('register_user', (userId) => {
+        socket.userId = userId;
+        userSocketMap.set(userId, socket.id);
+      });
+
       socket.on('join_room', (roomId) => {
         socket.join(roomId);
       });
@@ -112,7 +119,11 @@ const connectAndStart = async () => {
         socket.to(data.room).emit('typing', { isTyping: data.isTyping, sender: data.sender });
       });
 
-      socket.on('disconnect', () => {});
+      socket.on('disconnect', () => {
+        if (socket.userId) {
+          userSocketMap.delete(socket.userId);
+        }
+      });
     });
 
     const PORT = process.env.PORT || 5000;
