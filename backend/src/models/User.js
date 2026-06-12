@@ -32,8 +32,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
+    enum: ['buyer', 'seller', 'moderator', 'admin', 'superadmin'],
+    default: 'buyer'
   },
   avatar: {
     type: String,
@@ -42,6 +42,19 @@ const userSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isVerifiedSeller: {
+    type: Boolean,
+    default: false
+  },
+  aadhaarUrl: {
+    type: String,
+    default: null
+  },
+  aadhaarStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'none'],
+    default: 'none'
   }
 }, { timestamps: true });
 

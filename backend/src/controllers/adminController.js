@@ -173,13 +173,13 @@ const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
 
-    const users = await User.find({ role: 'user' })
+    const users = await User.find({ role: { $nin: ['admin', 'superadmin'] } })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit))
       .lean();
 
-    const total = await User.countDocuments({ role: 'user' });
+    const total = await User.countDocuments({ role: { $nin: ['admin', 'superadmin'] } });
 
     res.json({
       success: true, users,
@@ -228,10 +228,103 @@ const toggleUserStatus = async (req, res) => {
     user.isActive = !user.isActive;
     await user.save();
 
+    // Audit log
+    const { logAction } = require('../utils/auditLogger');
+    await logAction({
+      action: user.isActive ? 'USER_UNBAN' : 'USER_BAN',
+      actor: req.user,
+      targetType: 'User',
+      targetId: user._id,
+      details: `Admin ${user.isActive ? 'unbanned' : 'banned'} user: ${user.fullName}`
+    });
+
     res.json({ success: true, message: `User ${user.isActive ? 'activated' : 'deactivated'}`, isActive: user.isActive });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-module.exports = { getStats, getAllPets, approvePet, rejectPet, toggleFeatured, editPet, deletePet, getAllUsers, getAllEnquiries, toggleUserStatus };
+// @desc  Get users pending seller verification
+// @route GET /api/admin/sellers/pending
+const getPendingSellers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const users = await User.find({ aadhaarStatus: 'pending' })
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean();
+
+    const total = await User.countDocuments({ aadhaarStatus: 'pending' });
+
+    res.json({
+      success: true,
+      users,
+      pagination: { total, page: Number(page), pages: Math.ceil(total / limit) }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc  Verify/Reject seller
+// @route PUT /api/admin/sellers/:id/verify
+const verifySeller = async (req, res) => {
+  try {
+    const { status } = req.body; // 'approved' or 'rejected'
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    user.aadhaarStatus = status;
+    if (status === 'approved') {
+      user.isVerifiedSeller = true;
+      user.role = 'seller'; // upgrade role to seller when approved
+    } else {
+      user.isVerifiedSeller = false;
+    }
+    await user.save();
+
+    // Audit log
+    const { logAction } = require('../utils/auditLogger');
+    await logAction({
+      action: status === 'approved' ? 'SELLER_VERIFICATION_APPROVED' : 'SELLER_VERIFICATION_REJECTED',
+      actor: req.user,
+      targetType: 'User',
+      targetId: user._id,
+      details: `Admin ${status} seller verification for user: ${user.fullName}`
+    });
+
+    // Notify user
+    await Notification.create({
+      user: user._id,
+      title: status === 'approved' ? '🎉 Seller Profile Verified!' : '❌ Seller Verification Failed',
+      message: status === 'approved' 
+        ? 'Your Aadhaar verification is successful! You can now list pets for sale.' 
+        : 'Your seller verification was rejected. Please upload a clear Aadhaar copy.',
+      type: status === 'approved' ? 'seller_approved' : 'seller_rejected'
+    });
+
+    res.json({ success: true, message: `Seller verification status updated to ${status}`, user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getStats,
+  getAllPets,
+  approvePet,
+  rejectPet,
+  toggleFeatured,
+  editPet,
+  deletePet,
+  getAllUsers,
+  getAllEnquiries,
+  toggleUserStatus,
+  getPendingSellers,
+  verifySeller
+};

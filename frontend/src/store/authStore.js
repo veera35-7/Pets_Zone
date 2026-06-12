@@ -94,6 +94,44 @@ const useAuthStore = create(
         }
       },
 
+      firebaseLogin: async (idToken) => {
+        set({ isLoading: true })
+        try {
+          const { data } = await api.post('/auth/firebase-login', { idToken })
+          if (!data.isNewUser) {
+            set({
+              user: data.user,
+              token: data.token,
+              isAuthenticated: true,
+              isLoading: false
+            })
+          } else {
+            set({ isLoading: false })
+          }
+          return { success: true, isNewUser: data.isNewUser, mobile: data.mobile, firebaseUid: data.firebaseUid }
+        } catch (err) {
+          set({ isLoading: false })
+          return { success: false, message: err.response?.data?.message || 'Firebase login failed' }
+        }
+      },
+
+      completeFirebaseRegistration: async (mobile, fullName, email, firebaseUid) => {
+        set({ isLoading: true })
+        try {
+          const { data } = await api.post('/auth/firebase-complete', { mobile, fullName, email, firebaseUid })
+          set({
+            user: data.user,
+            token: data.token,
+            isAuthenticated: true,
+            isLoading: false
+          })
+          return { success: true }
+        } catch (err) {
+          set({ isLoading: false })
+          return { success: false, message: err.response?.data?.message || 'Firebase profile setup failed' }
+        }
+      },
+
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false })
       },

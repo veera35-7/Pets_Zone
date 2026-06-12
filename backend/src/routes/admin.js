@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const {
   getStats, getAllPets, approvePet, rejectPet, toggleFeatured,
-  editPet, deletePet, getAllUsers, getAllEnquiries, toggleUserStatus
+  editPet, deletePet, getAllUsers, getAllEnquiries, toggleUserStatus,
+  getPendingSellers, verifySeller
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
@@ -20,5 +21,9 @@ router.delete('/pets/:id', deletePet);
 router.get('/users', getAllUsers);
 router.put('/users/:id/toggle', toggleUserStatus);
 router.get('/enquiries', getAllEnquiries);
+
+// Seller Verification routes
+router.get('/sellers/pending', getPendingSellers);
+router.put('/sellers/:id/verify', verifySeller);
 
 module.exports = router;

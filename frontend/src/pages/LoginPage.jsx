@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Phone, Key, User, Sparkles } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import useAuthStore from '../store/authStore'
 import toast from 'react-hot-toast'
+import { auth, RecaptchaVerifier, signInWithPhoneNumber, isFirebaseMock } from '../lib/firebase'
 
 const LoginPage = () => {
   const [searchParams] = useSearchParams()
@@ -13,8 +14,10 @@ const LoginPage = () => {
   const [showPw, setShowPw] = useState(false)
   const [mobile, setMobile] = useState('')
   const [otpDev, setOtpDev] = useState('') // Stored OTP for developers
+  const [confirmationResult, setConfirmationResult] = useState(null)
+  const [firebaseUid, setFirebaseUid] = useState('')
 
-  const { login, sendOtp, verifyOtp, completeOtpRegistration, isLoading } = useAuthStore()
+  const { login, sendOtp, verifyOtp, completeOtpRegistration, firebaseLogin, completeFirebaseRegistration, isLoading } = useAuthStore()
   const navigate = useNavigate()
 
   // Form for Email login
@@ -42,43 +45,108 @@ const LoginPage = () => {
   const onMobileSubmit = async (data) => {
     const formattedMobile = data.mobile.trim()
     setMobile(formattedMobile)
-    const result = await sendOtp(formattedMobile)
-    if (result.success) {
-      toast.success('OTP sent successfully')
-      if (result.otp) {
-        setOtpDev(result.otp)
-        toast(`[DEV MODE] OTP Code is: ${result.otp}`, { icon: '🔑', duration: 8000 })
+
+    if (isFirebaseMock) {
+      // Mock flow
+      const result = await sendOtp(formattedMobile)
+      if (result.success) {
+        toast.success('OTP sent successfully (Mock Mode)')
+        if (result.otp) {
+          setOtpDev(result.otp)
+          toast(`[DEV MODE] OTP Code is: ${result.otp}`, { icon: '🔑', duration: 8000 })
+        }
+        setOtpStep('code')
+      } else {
+        toast.error(result.message)
       }
-      setOtpStep('code')
     } else {
-      toast.error(result.message)
+      // Firebase flow
+      try {
+        // Prepare reCAPTCHA
+        if (!window.recaptchaVerifier) {
+          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {}
+          })
+        }
+        const appVerifier = window.recaptchaVerifier
+        const confirmation = await signInWithPhoneNumber(auth, `+91${formattedMobile}`, appVerifier)
+        setConfirmationResult(confirmation)
+        toast.success('Verification code sent to your phone!')
+        setOtpStep('code')
+      } catch (err) {
+        toast.error(err.message || 'Failed to send OTP via Firebase')
+        console.error('Firebase sign in error:', err)
+      }
     }
   }
 
   const onOtpVerifySubmit = async (data) => {
-    const result = await verifyOtp(mobile, data.otp)
-    if (result.success) {
-      if (result.isNewUser) {
-        toast.success('Mobile verified! Please set up your profile details.')
-        setOtpStep('usercard')
+    if (isFirebaseMock) {
+      // Mock verification
+      const result = await verifyOtp(mobile, data.otp)
+      if (result.success) {
+        if (result.isNewUser) {
+          setFirebaseUid(`mock-uid-${mobile}`)
+          toast.success('Mobile verified! Please set up your profile details.')
+          setOtpStep('usercard')
+        } else {
+          toast.success('Logged in successfully! 👋')
+          const currentUser = useAuthStore.getState().user
+          navigate(currentUser?.role === 'admin' ? '/admin' : '/dashboard')
+        }
       } else {
-        toast.success('Logged in successfully! 👋')
-        // Check role after successful login
-        const currentUser = useAuthStore.getState().user
-        navigate(currentUser?.role === 'admin' ? '/admin' : '/dashboard')
+        toast.error(result.message)
       }
     } else {
-      toast.error(result.message)
+      // Firebase verification
+      if (!confirmationResult) {
+        toast.error('No verification context. Please request OTP again.')
+        return
+      }
+      try {
+        const userCredential = await confirmationResult.confirm(data.otp)
+        const idToken = await userCredential.user.getIdToken()
+
+        // Send token to backend
+        const result = await firebaseLogin(idToken)
+        if (result.success) {
+          if (result.isNewUser) {
+            setFirebaseUid(result.firebaseUid)
+            toast.success('Mobile verified! Please set up your profile details.')
+            setOtpStep('usercard')
+          } else {
+            toast.success('Logged in successfully! 👋')
+            const currentUser = useAuthStore.getState().user
+            navigate(currentUser?.role === 'admin' ? '/admin' : '/dashboard')
+          }
+        } else {
+          toast.error(result.message)
+        }
+      } catch (err) {
+        toast.error(err.message || 'OTP verification failed via Firebase')
+        console.error('OTP confirmation error:', err)
+      }
     }
   }
 
   const onUserCardSubmit = async (data) => {
-    const result = await completeOtpRegistration(mobile, data.fullName, data.email)
-    if (result.success) {
-      toast.success('Registration completed! Welcome to RV Pets Zone! 🎉')
-      navigate('/dashboard')
+    if (isFirebaseMock) {
+      const result = await completeOtpRegistration(mobile, data.fullName, data.email)
+      if (result.success) {
+        toast.success('Registration completed! Welcome to RV Pets Zone! 🎉')
+        navigate('/dashboard')
+      } else {
+        toast.error(result.message)
+      }
     } else {
-      toast.error(result.message)
+      const result = await completeFirebaseRegistration(mobile, data.fullName, data.email, firebaseUid)
+      if (result.success) {
+        toast.success('Registration completed! Welcome to RV Pets Zone! 🎉')
+        navigate('/dashboard')
+      } else {
+        toast.error(result.message)
+      }
     }
   }
 
@@ -405,6 +473,7 @@ const LoginPage = () => {
           <div className="mt-8 p-4 bg-primary-900/50 border border-primary-800 rounded-xl text-xs text-primary-500">
             <strong className="text-primary-400">Admin?</strong> Use your admin credentials under the EMAIL tab to access the Admin Panel.
           </div>
+          <div id="recaptcha-container"></div>
         </motion.div>
       </div>
     </div>

@@ -1,5 +1,8 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { verifyIdToken } = require('../utils/firebaseAdmin');
+const { logAction } = require('../utils/auditLogger');
+const { uploadToCloudinary } = require('../middleware/upload');
 
 // @desc  Register user
 // @route POST /api/auth/signup
@@ -63,6 +66,15 @@ const login = async (req, res) => {
 
     const token = generateToken(user._id);
     const userObj = user.toJSON();
+
+    // Audit log
+    await logAction({
+      action: 'LOGIN',
+      actor: user,
+      targetType: 'User',
+      targetId: user._id,
+      details: 'User logged in via Password'
+    });
 
     res.json({ success: true, message: 'Login successful', token, user: userObj });
   } catch (err) {
@@ -223,6 +235,16 @@ const verifyOTP = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Account deactivated. Contact support.' });
       }
       const token = generateToken(user._id);
+
+      // Audit log
+      await logAction({
+        action: 'LOGIN',
+        actor: user,
+        targetType: 'User',
+        targetId: user._id,
+        details: 'User logged in via OTP'
+      });
+
       return res.json({
         success: true,
         message: 'Login successful',
@@ -276,6 +298,15 @@ const completeOTPRegistration = async (req, res) => {
 
     const token = generateToken(user._id);
 
+    // Audit log
+    await logAction({
+      action: 'LOGIN',
+      actor: user,
+      targetType: 'User',
+      targetId: user._id,
+      details: 'User registered and logged in via OTP'
+    });
+
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
@@ -287,4 +318,168 @@ const completeOTPRegistration = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, getMe, updateProfile, changePassword, sendOTP, verifyOTP, completeOTPRegistration };
+// @desc  Verify Firebase ID token and login/register
+// @route POST /api/auth/firebase-login
+// @access Public
+const firebaseLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ success: false, message: 'Firebase ID token is required' });
+    }
+
+    // Verify token
+    const decoded = await verifyIdToken(idToken);
+    if (!decoded || !decoded.phone_number) {
+      return res.status(400).json({ success: false, message: 'Invalid token or phone number not verified' });
+    }
+
+    // Extract 10-digit mobile number
+    const mobile = decoded.phone_number.slice(-10);
+
+    // Find user by mobile
+    const user = await User.findOne({ mobile });
+    if (user) {
+      if (!user.isActive) {
+        return res.status(403).json({ success: false, message: 'Account deactivated. Contact support.' });
+      }
+      const token = generateToken(user._id);
+
+      // Audit log
+      await logAction({
+        action: 'LOGIN',
+        actor: user,
+        targetType: 'User',
+        targetId: user._id,
+        details: 'User logged in via Firebase Phone Auth'
+      });
+
+      return res.json({
+        success: true,
+        message: 'Login successful',
+        token,
+        user,
+        isNewUser: false
+      });
+    }
+
+    // If user does not exist, return new user status
+    res.json({
+      success: true,
+      message: 'Firebase verification successful. Profile registration required.',
+      isNewUser: true,
+      mobile,
+      firebaseUid: decoded.uid
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc  Complete registration via Firebase Auth
+// @route POST /api/auth/firebase-complete
+// @access Public
+const completeFirebaseRegistration = async (req, res) => {
+  try {
+    const { mobile, fullName, email, firebaseUid } = req.body;
+    if (!mobile || !fullName || !email) {
+      return res.status(400).json({ success: false, message: 'Mobile, Full Name, and Email are required' });
+    }
+
+    // Check unique constraints
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    const existingMobile = await User.findOne({ mobile });
+    if (existingMobile) {
+      return res.status(400).json({ success: false, message: 'Mobile number already registered' });
+    }
+
+    // Generate a secure random password for model constraint
+    const randomPassword = Math.random().toString(36).slice(-10) + 'A1!';
+
+    const user = await User.create({
+      fullName,
+      mobile,
+      email,
+      password: randomPassword
+    });
+
+    const token = generateToken(user._id);
+
+    // Audit log
+    await logAction({
+      action: 'LOGIN',
+      actor: user,
+      targetType: 'User',
+      targetId: user._id,
+      details: 'User registered and logged in via Firebase Phone Auth'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      token,
+      user
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// @desc  Upload Aadhaar for seller verification
+// @route POST /api/auth/upload-aadhaar
+// @access Private
+const uploadAadhaar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload an Aadhaar image file' });
+    }
+
+    // Upload buffer to Cloudinary
+    const uploadResult = await uploadToCloudinary(req.file.buffer, 'rv-pets-zone/aadhaar');
+
+    // Update user record
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        aadhaarUrl: uploadResult.secure_url,
+        aadhaarStatus: 'pending'
+      },
+      { new: true }
+    );
+
+    // Audit log
+    await logAction({
+      action: 'USER_UPDATED',
+      actor: user,
+      targetType: 'User',
+      targetId: user._id,
+      details: 'User uploaded Aadhaar for verification'
+    });
+
+    res.json({
+      success: true,
+      message: 'Aadhaar uploaded successfully. Verification is pending.',
+      user
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  signup,
+  login,
+  getMe,
+  updateProfile,
+  changePassword,
+  sendOTP,
+  verifyOTP,
+  completeOTPRegistration,
+  firebaseLogin,
+  completeFirebaseRegistration,
+  uploadAadhaar
+};
