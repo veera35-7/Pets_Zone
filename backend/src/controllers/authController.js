@@ -190,12 +190,19 @@ const sendOTP = async (req, res) => {
     console.log(`[OTP] Welcome to RV Pets Zone! Use OTP: ${code} to login.`);
 
     // Send actual SMS if Fast2SMS API key is set
-    await sendActualSMS(mobile, code);
+    const smsSent = await sendActualSMS(mobile, code);
 
-    res.json({
+    const responsePayload = {
       success: true,
       message: 'OTP sent successfully'
-    });
+    };
+
+    // Expose OTP in response for mock/testing when SMS gateway is not active
+    if (!smsSent || !process.env.FAST2SMS_API_KEY) {
+      responsePayload.otp = code;
+    }
+
+    res.json(responsePayload);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
